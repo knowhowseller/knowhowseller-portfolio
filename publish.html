@@ -1,0 +1,124 @@
+<!-- knowhowseller.com/publish — TikTok 게시 도구 (Login Kit + Content Posting API) -->
+<style>
+.ksv{max-width:760px;margin:0 auto;padding:32px 18px 72px;background:#0f1114;color:#ede6d8;
+ font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;min-height:100vh}
+.ksv *{box-sizing:border-box}
+.ksv h1{font-size:26px;margin:0 0 6px;letter-spacing:-.4px}
+.ksv .sub{color:#8b8f96;font-size:14px;margin:0 0 26px;line-height:1.6}
+.ksv .card{background:#15181c;border:1px solid #1c2026;border-radius:12px;padding:20px;margin:0 0 16px}
+.ksv .card h2{font-size:15px;margin:0 0 4px;font-weight:600}
+.ksv .card p{color:#8b8f96;font-size:13px;margin:0 0 14px;line-height:1.6}
+.ksv .step{display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:50%;
+ background:#23272d;color:#8b8f96;font-size:12px;margin-right:8px}
+.ksv .step.on{background:#ede6d8;color:#0f1114}
+.ksv button,.ksv .btn{background:#ede6d8;color:#0f1114;border:0;border-radius:8px;padding:11px 20px;
+ font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;display:inline-block}
+.ksv button:disabled{background:#23272d;color:#5c6169;cursor:not-allowed}
+.ksv .ghost{background:transparent;color:#8b8f96;border:1px solid #23272d}
+.ksv input[type=text],.ksv textarea{width:100%;background:#0f1114;border:1px solid #23272d;border-radius:8px;
+ color:#ede6d8;padding:11px 13px;font-size:14px;font-family:inherit}
+.ksv textarea{min-height:92px;resize:vertical;line-height:1.6}
+.ksv .drop{border:1px dashed #2c313a;border-radius:10px;padding:26px;text-align:center;color:#8b8f96;font-size:13px}
+.ksv .drop.has{border-style:solid;border-color:#3a4048;color:#ede6d8}
+.ksv .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.ksv .who{display:flex;align-items:center;gap:10px;font-size:14px}
+.ksv .who img{width:34px;height:34px;border-radius:50%}
+.ksv .log{background:#0b0d10;border:1px solid #1c2026;border-radius:8px;padding:12px 14px;
+ font-size:12px;color:#8b8f96;line-height:1.8;white-space:pre-wrap;margin-top:14px;display:none}
+.ksv .log.on{display:block}
+.ksv .foot{color:#5c6169;font-size:12px;line-height:1.7;margin-top:28px;border-top:1px solid #1c2026;padding-top:16px}
+</style>
+<div class="ksv">
+  <h1>영상 게시 도구</h1>
+  <p class="sub">우리가 제작한 숏폼을 TikTok 계정에 게시합니다.<br>
+     자체 제작물만 올리며, 제3자 콘텐츠는 게시하지 않습니다.</p>
+
+  <div class="card">
+    <h2><span class="step on" id="s1">1</span>TikTok 계정 연결</h2>
+    <p>Login Kit으로 본인 계정을 연결합니다. 연결한 계정에만 게시됩니다.</p>
+    <div id="authArea">
+      <a class="btn" id="btnConnect" href="/publish?action=connect">TikTok 계정 연결</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="step" id="s2">2</span>영상 선택</h2>
+    <p>게시할 영상 파일을 고릅니다. mp4 · 세로 9:16 권장.</p>
+    <div class="drop" id="drop">여기를 클릭해 영상을 선택하세요</div>
+    <input type="file" id="file" accept="video/mp4,video/quicktime" style="display:none">
+  </div>
+
+  <div class="card">
+    <h2><span class="step" id="s3">3</span>캡션 작성</h2>
+    <p>TikTok에 표시될 문구입니다.</p>
+    <textarea id="caption" placeholder="예) 불안은 없애는 게 아니었습니다. #철학 #명언"></textarea>
+    <div class="row">
+      <button id="btnPost" disabled>TikTok에 게시</button>
+      <button class="ghost" id="btnStatus" disabled>게시 상태 확인</button>
+    </div>
+    <div class="log" id="log"></div>
+  </div>
+
+  <div class="foot">
+    이 도구는 <b>knowhowseller.com</b> 운영자 본인의 TikTok 계정(@knowhowseller)에만 게시합니다.<br>
+    사용자 생성 콘텐츠나 제3자 콘텐츠는 다루지 않습니다.
+    <a href="/privacy-policy/" style="color:#8b8f96">개인정보처리방침</a> ·
+    <a href="/terms/" style="color:#8b8f96">이용약관</a>
+  </div>
+</div>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var log = function (m) { var l = $('log'); l.classList.add('on'); l.textContent += m + '\n'; };
+  var picked = null, publishId = null;
+
+  // ① 연결 상태 — 서버가 넣어준 값
+  var me = window.KS_TIKTOK_USER || null;
+  if (me) {
+    $('authArea').innerHTML = '<div class="who">' +
+      (me.avatar ? '<img src="' + me.avatar + '" alt="">' : '') +
+      '<div><b>' + (me.name || '연결됨') + '</b><br>' +
+      '<span style="color:#8b8f96;font-size:12px">연결됨 · 이 계정에 게시됩니다</span></div></div>' +
+      '<div class="row"><a class="btn ghost" href="/publish?action=disconnect">연결 해제</a></div>';
+    $('s2').classList.add('on');
+  }
+
+  // ② 파일 선택
+  $('drop').addEventListener('click', function () { $('file').click(); });
+  $('file').addEventListener('change', function (e) {
+    picked = e.target.files[0] || null;
+    if (!picked) return;
+    $('drop').classList.add('has');
+    $('drop').textContent = picked.name + '  ·  ' + (picked.size / 1048576).toFixed(1) + 'MB';
+    $('s3').classList.add('on');
+    $('btnPost').disabled = !me;
+  });
+
+  // ③ 게시
+  $('btnPost').addEventListener('click', async function () {
+    if (!picked) { log('영상을 먼저 선택하세요.'); return; }
+    $('btnPost').disabled = true;
+    log('게시를 시작합니다…');
+    var fd = new FormData();
+    fd.append('video', picked);
+    fd.append('caption', $('caption').value || '');
+    try {
+      var r = await fetch('/publish?action=post', { method: 'POST', body: fd });
+      var j = await r.json();
+      if (j.error) { log('오류: ' + j.error); $('btnPost').disabled = false; return; }
+      publishId = j.publish_id;
+      log('업로드 완료 · publish_id = ' + publishId);
+      log('TikTok이 처리 중입니다. 상태 확인을 눌러 진행을 보세요.');
+      $('btnStatus').disabled = false;
+    } catch (err) { log('실패: ' + err); $('btnPost').disabled = false; }
+  });
+
+  // ④ 상태 확인
+  $('btnStatus').addEventListener('click', async function () {
+    if (!publishId) return;
+    var r = await fetch('/publish?action=status&publish_id=' + encodeURIComponent(publishId));
+    var j = await r.json();
+    log('상태: ' + (j.status || JSON.stringify(j)));
+  });
+})();
+</script>
